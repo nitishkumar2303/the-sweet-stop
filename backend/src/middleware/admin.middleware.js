@@ -12,6 +12,7 @@ export default function adminMiddleware(req, res, next) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
+  // if the role is not admin return 403 
   if (req.user.role !== "admin") {
     return res.status(403).json({ error: "Forbidden" });
   }
