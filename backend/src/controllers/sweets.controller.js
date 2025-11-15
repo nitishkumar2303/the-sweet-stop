@@ -60,3 +60,8 @@ export async function listSweets(req, res) {
     return res.status(500).json({ error: "server error" });
   }
 }
+
+
+export async function searchSweets(req, res) {
+  return res.status(501).json({ error: "Not implemented" });
+}
