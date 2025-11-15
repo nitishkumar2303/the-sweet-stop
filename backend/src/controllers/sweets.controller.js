@@ -45,6 +45,7 @@ export async function listSweets(req, res) {
   try {
     const docs = await Sweet.find({}).lean();
 
+    //this maps sweets one by one in array 
     const items = docs.map((d) => ({
       id: String(d._id),
       name: d.name,
