@@ -116,70 +116,57 @@ export async function updateSweet(req, res) {
     const { id } = req.params;
     const { name, category, price, quantity } = req.body;
 
-    // If nothing to update, return 400
-    if (
-      name === undefined &&
-      category === undefined &&
-      price === undefined &&
-      quantity === undefined
-    ) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "At least one updatable field (name, category, price, quantity) is required",
-        });
-    }
-
-    // Validate individual fields if present
-    if (price !== undefined && (typeof price !== "number" || price < 0)) {
-      return res
-        .status(400)
-        .json({ error: "price must be a non-negative number" });
-    }
-
-    if (
-      quantity !== undefined &&
-      (!Number.isInteger(quantity) || quantity < 0)
-    ) {
-      return res
-        .status(400)
-        .json({ error: "quantity must be a non-negative integer" });
-    }
-
+    // Build update object dynamically
     const updates = {};
     if (name !== undefined) updates.name = String(name).trim();
     if (category !== undefined) updates.category = String(category).trim();
     if (price !== undefined) updates.price = price;
     if (quantity !== undefined) updates.quantity = quantity;
 
-    // Check that sweet exists first
+    // No fields provided
+    if (Object.keys(updates).length === 0) {
+      return res
+        .status(400)
+        .json({ error: "At least one field is required to update" });
+    }
+
+    // Simple validation
+    if (price !== undefined && price < 0) {
+      return res.status(400).json({ error: "price must be non-negative" });
+    }
+    if (
+      quantity !== undefined &&
+      (quantity < 0 || !Number.isInteger(quantity))
+    ) {
+      return res
+        .status(400)
+        .json({ error: "quantity must be a non-negative integer" });
+    }
+
+    // Find sweet
     const existingSweet = await Sweet.findById(id);
     if (!existingSweet) {
       return res.status(404).json({ error: "Sweet not found" });
     }
 
-    // If name changed, ensure no other sweet has same name
+    // Check duplicate name
     if (updates.name && updates.name !== existingSweet.name) {
-      const dup = await Sweet.findOne({
+      const duplicate = await Sweet.findOne({
         name: updates.name,
-        _id: { $ne: existingSweet._id },
-      }).lean();
-      if (dup) {
+        _id: { $ne: id },
+      });
+      if (duplicate) {
         return res
           .status(409)
           .json({ error: "Sweet with this name already exists" });
       }
     }
 
-    // Do update and return the new doc
+    // Perform update
     try {
-      const updated = await Sweet.findByIdAndUpdate(id, updates, {
-        new: true,
-        runValidators: true,
-      }).lean();
+      const updated = await Sweet.findByIdAndUpdate(id, updates, { new: true });
       return res.status(200).json({
-        id: String(updated._id),
+        id: updated._id.toString(),
         name: updated.name,
         category: updated.category,
         price: updated.price,
@@ -191,8 +178,7 @@ export async function updateSweet(req, res) {
           .status(409)
           .json({ error: "Sweet with this name already exists" });
       }
-
-      throw err;
+      return res.status(500).json({ error: "server error" });
     }
   } catch (err) {
     console.error("updateSweet error:", err);
