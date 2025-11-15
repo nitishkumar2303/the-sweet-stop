@@ -35,39 +35,40 @@ export async function register(req, res) {
   }
 }
 
-
+// Login controller — validates input, verifies credentials, and issues JWT token
 export async function login(req, res) {
   try {
-    let { email, password } = req.body;
+    // Extract raw email to safely normalize it
+    const { email: rawEmail, password } = req.body;
 
-    //Validatig the input
-    if (!email || !password) {
+    // Validate required input fields
+    if (!rawEmail || !password) {
       return res.status(400).json({ error: "email and password required" });
     }
 
-    // trim and change the email to lower case
-    email = email.trim().toLowerCase();
+    // Removing extra space if there
+    const email = String(rawEmail).trim().toLowerCase();
 
-    //Check if user exists
+    //Check if a user with this email exists
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    //Compare password using bcrypt
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
+    // Compare submitted password with stored hash
+    const matched = await user.comparePassword(password);
+    if (!matched) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // Generate a JWT token
+    // Generate a JWT token for session/auth
     const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET || "testsecret",
-      { expiresIn: "7d" }
+      { id: user._id, role: user.role }, // Payload
+      process.env.JWT_SECRET ?? "testsecret", // Secret or fallback
+      { expiresIn: "7d" } // Token expiry
     );
 
-    // Return success (but never return password)
+    // Return safe user info + token (never return password)
     return res.status(200).json({
       token,
       email: user.email,
@@ -75,6 +76,7 @@ export async function login(req, res) {
       role: user.role,
     });
   } catch (err) {
+    // Log unexpected errors for debugging
     console.error("Login error:", err);
     return res.status(500).json({ error: "server error" });
   }
