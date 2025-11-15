@@ -206,3 +206,44 @@ export async function deleteSweet(req, res) {
     return res.status(500).json({ error: "server error" });
   }
 }
+
+
+export async function purchaseSweet(req, res) {
+  try {
+    const { id } = req.params;
+    // parse quantity, default to 1
+    const requested = req.body?.quantity === undefined ? 1 : Number(req.body.quantity);
+
+    // validate quantity
+    if (!Number.isInteger(requested) || requested <= 0) {
+      return res.status(400).json({ error: "quantity must be a positive integer" });
+    }
+
+    // check sweet exists
+    const sweet = await Sweet.findById(id).lean();
+    if (!sweet) {
+      return res.status(404).json({ error: "Sweet not found" });
+    }
+
+    // Try to atomically decrement if enough stock
+    const updated = await Sweet.findOneAndUpdate(
+      { _id: id, quantity: { $gte: requested } }, // ensure enough stock
+      { $inc: { quantity: -requested } },        // decrement
+      { new: true }                              // return updated doc
+    ).lean();
+
+    // if updated is null => not enough stock
+    if (!updated) {
+      return res.status(400).json({ error: "Insufficient stock" });
+    }
+
+    return res.status(200).json({
+      id: String(updated._id),
+      name: updated.name,
+      quantity: updated.quantity,
+    });
+  } catch (err) {
+    console.error("purchaseSweet error:", err);
+    return res.status(500).json({ error: "server error" });
+  }
+}
