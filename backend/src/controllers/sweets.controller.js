@@ -45,7 +45,7 @@ export async function listSweets(req, res) {
   try {
     const docs = await Sweet.find({}).lean();
 
-    //this maps sweets one by one in array 
+    //this maps sweets one by one in array
     const items = docs.map((d) => ({
       id: String(d._id),
       name: d.name,
@@ -57,6 +57,131 @@ export async function listSweets(req, res) {
     return res.status(200).json({ items });
   } catch (error) {
     console.error("error Listing sweets", error);
+    return res.status(500).json({ error: "server error" });
+  }
+}
+
+export async function searchSweets(req, res) {
+  try {
+    const { name, category, min, max } = req.query;
+
+    const query = {};
+
+    // name: case-insensitive substring match
+    if (name && String(name).trim().length > 0) {
+      query.name = { $regex: String(name).trim(), $options: "i" };
+    }
+
+    // category: case-insensitive exact-ish (use regex to be forgiving)
+    if (category && String(category).trim().length > 0) {
+      query.category = {
+        $regex: `^${String(category).trim()}$`,
+        $options: "i",
+      };
+    }
+
+    // price range
+    const priceFilter = {};
+    if (min !== undefined) {
+      const minNum = Number(min);
+      if (!Number.isNaN(minNum)) priceFilter.$gte = minNum;
+    }
+    if (max !== undefined) {
+      const maxNum = Number(max);
+      if (!Number.isNaN(maxNum)) priceFilter.$lte = maxNum;
+    }
+    if (Object.keys(priceFilter).length) {
+      query.price = priceFilter;
+    }
+
+    const docs = await Sweet.find(query).lean();
+
+    const items = docs.map((d) => ({
+      id: String(d._id),
+      name: d.name,
+      category: d.category,
+      price: d.price,
+      quantity: d.quantity,
+    }));
+
+    return res.status(200).json({ items });
+  } catch (err) {
+    console.error("searchSweets error:", err);
+    return res.status(500).json({ error: "server error" });
+  }
+}
+
+export async function updateSweet(req, res) {
+  try {
+    const { id } = req.params;
+    const { name, category, price, quantity } = req.body;
+
+    // Build update object dynamically
+    const updates = {};
+    if (name !== undefined) updates.name = String(name).trim();
+    if (category !== undefined) updates.category = String(category).trim();
+    if (price !== undefined) updates.price = price;
+    if (quantity !== undefined) updates.quantity = quantity;
+
+    // No fields provided
+    if (Object.keys(updates).length === 0) {
+      return res
+        .status(400)
+        .json({ error: "At least one field is required to update" });
+    }
+
+    // Simple validation
+    if (price !== undefined && price < 0) {
+      return res.status(400).json({ error: "price must be non-negative" });
+    }
+    if (
+      quantity !== undefined &&
+      (quantity < 0 || !Number.isInteger(quantity))
+    ) {
+      return res
+        .status(400)
+        .json({ error: "quantity must be a non-negative integer" });
+    }
+
+    // Find sweet
+    const existingSweet = await Sweet.findById(id);
+    if (!existingSweet) {
+      return res.status(404).json({ error: "Sweet not found" });
+    }
+
+    // Check duplicate name
+    if (updates.name && updates.name !== existingSweet.name) {
+      const duplicate = await Sweet.findOne({
+        name: updates.name,
+        _id: { $ne: id },
+      });
+      if (duplicate) {
+        return res
+          .status(409)
+          .json({ error: "Sweet with this name already exists" });
+      }
+    }
+
+    // Perform update
+    try {
+      const updated = await Sweet.findByIdAndUpdate(id, updates, { new: true });
+      return res.status(200).json({
+        id: updated._id.toString(),
+        name: updated.name,
+        category: updated.category,
+        price: updated.price,
+        quantity: updated.quantity,
+      });
+    } catch (err) {
+      if (err?.code === 11000) {
+        return res
+          .status(409)
+          .json({ error: "Sweet with this name already exists" });
+      }
+      return res.status(500).json({ error: "server error" });
+    }
+  } catch (err) {
+    console.error("updateSweet error:", err);
     return res.status(500).json({ error: "server error" });
   }
 }
