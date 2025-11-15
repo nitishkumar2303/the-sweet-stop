@@ -185,3 +185,24 @@ export async function updateSweet(req, res) {
     return res.status(500).json({ error: "server error" });
   }
 }
+
+//admin only
+export async function deleteSweet(req, res) {
+  try {
+    const { id } = req.params;
+
+    // find the sweet
+    const sweet = await Sweet.findById(id);
+    if (!sweet) {
+      return res.status(404).json({ error: "Sweet not found" });
+    }
+
+    // remove it
+    await Sweet.findByIdAndDelete(id);
+
+    return res.status(200).json({ deleted: true });
+  } catch (err) {
+    console.error("deleteSweet error:", err);
+    return res.status(500).json({ error: "server error" });
+  }
+}

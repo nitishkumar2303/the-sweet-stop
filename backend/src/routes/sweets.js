@@ -1,6 +1,6 @@
 // backend/src/routes/sweets.js
 import express from "express";
-import { createSweet, listSweets  , searchSweets ,updateSweet} from "../controllers/sweets.controller.js";
+import { createSweet, listSweets  , searchSweets ,updateSweet ,deleteSweet} from "../controllers/sweets.controller.js";
 import auth from "../middleware/auth.middleware.js";
 import admin from "../middleware/admin.middleware.js";
 
@@ -11,6 +11,8 @@ router.post("/", auth, admin, createSweet);
 router.get("/" , auth , listSweets);
 router.get("/search" , auth , searchSweets);
 router.put("/:id", auth , admin , updateSweet);
+router.delete("/:id", auth, admin, deleteSweet);
+
 
 
 export default router;
