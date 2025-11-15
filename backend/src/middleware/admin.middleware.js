@@ -1,13 +1,20 @@
 // backend/src/middleware/admin.middleware.js
 /**
- * Admin middleware
- * - Assumes auth middleware already ran and attached req.user
- * - If no req.user -> 401
- * - If req.user.role !== 'admin' -> 403
- * - Otherwise allow request
+ * Admin middleware (GREEN)
+ * - Expects auth middleware to have attached req.user = { id, role }
+ * - If no req.user -> 401 Unauthorized
+ * - If req.user.role !== 'admin' -> 403 Forbidden
+ * - Otherwise call next()
  */
 export default function adminMiddleware(req, res, next) {
+  if (!req.user) {
+    // auth middleware didn't run or token invalid
+    return res.status(401).json({ error: "Unauthorized" });
+  }
 
-    return res.status(403).json({error: "forbidden"});
-  
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  return next();
 }
