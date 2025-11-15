@@ -38,7 +38,7 @@ export default async function authMiddleware(req, res, next) {
 
     return next();
   } catch (err) {
-    // token invalid/expired or verification failed
+    // token invalid/expired or verification failed.
     return res.status(401).json({ error: "Unauthorized" });
   }
 }
