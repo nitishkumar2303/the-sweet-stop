@@ -1,11 +1,6 @@
-// src/App.jsx
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import AppRoutes from "./routes/AppRoutes";
 
 export default function App() {
-  return (
-    <>
-    <div>Let's start building frontend</div>
-    </>
-  );
+  return <AppRoutes />;
 }
