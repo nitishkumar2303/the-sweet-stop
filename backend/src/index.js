@@ -5,6 +5,7 @@ import cors from "cors";
 
 import authRoutes from "./routes/auth.js";
 import sweetsRoutes from "./routes/sweets.js";
+import categoriesRoutes from "./routes/categories.js";
 
 import authMiddleware from "./middleware/auth.middleware.js";
 import adminMiddleware from "./middleware/admin.middleware.js";
@@ -21,6 +22,7 @@ app.use(express.json());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/sweets", sweetsRoutes);
+app.use("/api/categories", categoriesRoutes);
 
 //made this route for testing purpose
 app.get("/api/test/protected", authMiddleware, (req, res) => {

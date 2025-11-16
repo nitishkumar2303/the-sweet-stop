@@ -12,8 +12,16 @@ let mongoServer;
 // helper: create a real DB user & token (async)
 async function tokenFor(role = "user") {
   const email = `${Date.now()}@test.local`;
-  const user = await User.create({ name: "T", email, password: "Pass123!", role });
-  return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || "testsecret");
+  const user = await User.create({
+    name: "T",
+    email,
+    password: "Pass123!",
+    role,
+  });
+  return jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.JWT_SECRET || "testsecret"
+  );
 }
 
 beforeAll(async () => {
@@ -33,7 +41,9 @@ afterAll(async () => {
 describe("POST /api/sweets/:id/restock", () => {
   test("returns 401 if not logged in", async () => {
     const id = new mongoose.Types.ObjectId();
-    const res = await request(app).post(`/api/sweets/${id}/restock`).send({ quantity: 10 });
+    const res = await request(app)
+      .post(`/api/sweets/${id}/restock`)
+      .send({ quantity: 10 });
     expect(res.status).toBe(401);
   });
 
@@ -102,5 +112,25 @@ describe("POST /api/sweets/:id/restock", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.quantity).toBe(15);
+  });
+
+  test("allows decimal restock for non-piece unit (kg)", async () => {
+    const sweet = await Sweet.create({
+      name: "Halwa",
+      category: "Indian",
+      price: 80,
+      quantity: 2.5,
+      unit: "kg",
+    });
+
+    const token = await tokenFor("admin");
+
+    const res = await request(app)
+      .post(`/api/sweets/${sweet._id}/restock`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ quantity: 0.5 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.quantity).toBeCloseTo(3.0);
   });
 });

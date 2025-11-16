@@ -1,15 +1,26 @@
 // backend/src/controllers/sweets.controller.js
 import Sweet from "../models/Sweet.js";
+import Category from "../models/Category.js";
+
+function escapeRegex(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const ALLOWED_UNITS = ["piece", "kg", "g", "ltr", "ml"];
 
 export async function createSweet(req, res) {
   try {
-    const { name, category, price, quantity } = req.body;
+    const { name, category, price, quantity, unit } = req.body;
 
     // Validate input
     if (!name || !category || price === undefined || quantity === undefined) {
       return res
         .status(400)
         .json({ error: "name, category, price and quantity are required" });
+    }
+
+    if (unit !== undefined && !ALLOWED_UNITS.includes(unit)) {
+      return res.status(400).json({ error: "invalid unit" });
     }
 
     // Check duplicate name
@@ -20,12 +31,27 @@ export async function createSweet(req, res) {
         .json({ error: "Sweet with this name already exists" });
     }
 
+    // Ensure category exists in categories collection (create if missing)
+    try {
+      const catName = String(category).trim();
+      const existingCat = await Category.findOne({
+        name: { $regex: `^${escapeRegex(catName)}$`, $options: "i" },
+      });
+      if (!existingCat) {
+        await Category.create({ name: catName });
+      }
+    } catch (err) {
+      // Non-fatal - continue but log
+      console.error("createSweet: failed to ensure category exists", err);
+    }
+
     // Create sweet
     const sweet = await Sweet.create({
       name: name.trim(),
       category: category.trim(),
       price,
       quantity,
+      unit: unit ?? undefined,
     });
 
     return res.status(201).json({
@@ -34,6 +60,7 @@ export async function createSweet(req, res) {
       category: sweet.category,
       price: sweet.price,
       quantity: sweet.quantity,
+      unit: sweet.unit,
     });
   } catch (err) {
     console.error("createSweet error:", err);
@@ -53,6 +80,7 @@ export async function listSweets(req, res) {
       category: d.category,
       price: d.price,
       quantity: d.quantity,
+      unit: d.unit ?? "piece",
     }));
 
     return res.status(200).json({ items });
@@ -103,6 +131,7 @@ export async function searchSweets(req, res) {
       category: d.category,
       price: d.price,
       quantity: d.quantity,
+      unit: d.unit ?? "piece",
     }));
 
     return res.status(200).json({ items });
@@ -115,7 +144,7 @@ export async function searchSweets(req, res) {
 export async function updateSweet(req, res) {
   try {
     const { id } = req.params;
-    const { name, category, price, quantity } = req.body;
+    const { name, category, price, quantity, unit } = req.body;
 
     // Build update object dynamically
     const updates = {};
@@ -123,6 +152,7 @@ export async function updateSweet(req, res) {
     if (category !== undefined) updates.category = String(category).trim();
     if (price !== undefined) updates.price = price;
     if (quantity !== undefined) updates.quantity = quantity;
+    if (unit !== undefined) updates.unit = unit;
 
     // No fields provided
     if (Object.keys(updates).length === 0) {
@@ -131,23 +161,35 @@ export async function updateSweet(req, res) {
         .json({ error: "At least one field is required to update" });
     }
 
+    // Find sweet first (we need its unit for validation if unit not changed)
+    const existingSweet = await Sweet.findById(id);
+    if (!existingSweet) {
+      return res.status(404).json({ error: "Sweet not found" });
+    }
+
+    // validate unit if provided
+    if (unit !== undefined && !ALLOWED_UNITS.includes(unit)) {
+      return res.status(400).json({ error: "invalid unit" });
+    }
+
     // Simple validation
     if (price !== undefined && price < 0) {
       return res.status(400).json({ error: "price must be non-negative" });
     }
-    if (
-      quantity !== undefined &&
-      (quantity < 0 || !Number.isInteger(quantity))
-    ) {
-      return res
-        .status(400)
-        .json({ error: "quantity must be a non-negative integer" });
-    }
 
-    // Find sweet
-    const existingSweet = await Sweet.findById(id);
-    if (!existingSweet) {
-      return res.status(404).json({ error: "Sweet not found" });
+    // determine final unit to validate quantity correctly
+    const finalUnit = updates.unit ?? existingSweet.unit ?? "piece";
+
+    if (quantity !== undefined) {
+      const qnum = Number(quantity);
+      if (Number.isNaN(qnum) || qnum < 0) {
+        return res.status(400).json({ error: "quantity must be non-negative" });
+      }
+      if (finalUnit === "piece" && !Number.isInteger(qnum)) {
+        return res.status(400).json({
+          error: "quantity must be a non-negative integer for pieces",
+        });
+      }
     }
 
     // Check duplicate name
@@ -163,6 +205,21 @@ export async function updateSweet(req, res) {
       }
     }
 
+    // If category is being updated, ensure it exists in categories collection
+    if (updates.category) {
+      try {
+        const catName = String(updates.category).trim();
+        const existingCat = await Category.findOne({
+          name: { $regex: `^${escapeRegex(catName)}$`, $options: "i" },
+        });
+        if (!existingCat) {
+          await Category.create({ name: catName });
+        }
+      } catch (err) {
+        console.error("updateSweet: failed to ensure category exists", err);
+      }
+    }
+
     // Perform update
     try {
       const updated = await Sweet.findByIdAndUpdate(id, updates, { new: true });
@@ -172,6 +229,7 @@ export async function updateSweet(req, res) {
         category: updated.category,
         price: updated.price,
         quantity: updated.quantity,
+        unit: updated.unit,
       });
     } catch (err) {
       if (err?.code === 11000) {
@@ -198,8 +256,26 @@ export async function deleteSweet(req, res) {
       return res.status(404).json({ error: "Sweet not found" });
     }
 
-    // remove it
+    // remember category name before deletion
+    const catName = sweet.category;
+
+    // remove the sweet
     await Sweet.findByIdAndDelete(id);
+
+    // if no other sweets use this category, remove category as well
+    try {
+      const other = await Sweet.findOne({
+        category: { $regex: `^${escapeRegex(catName)}$`, $options: "i" },
+      });
+      if (!other) {
+        await Category.deleteOne({
+          name: { $regex: `^${escapeRegex(catName)}$`, $options: "i" },
+        });
+      }
+    } catch (err) {
+      // non-fatal; log and continue
+      console.error("deleteSweet: failed to cleanup category", err);
+    }
 
     return res.status(200).json({ deleted: true });
   } catch (err) {
@@ -215,17 +291,25 @@ export async function purchaseSweet(req, res) {
     const requested =
       req.body?.quantity === undefined ? 1 : Number(req.body.quantity);
 
-    // validate quantity
-    if (!Number.isInteger(requested) || requested <= 0) {
-      return res
-        .status(400)
-        .json({ error: "quantity must be a positive integer" });
-    }
-
-    // check sweet exists
+    // check sweet exists (we need its unit to validate requested)
     const sweet = await Sweet.findById(id).lean();
     if (!sweet) {
       return res.status(404).json({ error: "Sweet not found" });
+    }
+
+    // validate quantity based on unit
+    if (sweet.unit === "piece") {
+      if (!Number.isInteger(requested) || requested <= 0) {
+        return res
+          .status(400)
+          .json({ error: "quantity must be a positive integer" });
+      }
+    } else {
+      if (Number.isNaN(requested) || requested <= 0) {
+        return res
+          .status(400)
+          .json({ error: "quantity must be a positive number" });
+      }
     }
 
     // Try to atomically decrement if enough stock
@@ -244,6 +328,7 @@ export async function purchaseSweet(req, res) {
       id: String(updated._id),
       name: updated.name,
       quantity: updated.quantity,
+      unit: updated.unit ?? sweet.unit,
     });
   } catch (err) {
     console.error("purchaseSweet error:", err);
@@ -262,13 +347,28 @@ export async function restockSweet(req, res) {
       return res.status(400).json({ error: "quantity is required" });
     }
     const add = Number(qty);
-    if (!Number.isInteger(add) || add <= 0) {
-      return res
-        .status(400)
-        .json({ error: "quantity must be a positive integer" });
+
+    // ensure sweet exists to validate unit
+    const sweet = await Sweet.findById(id).lean();
+    if (!sweet) {
+      return res.status(404).json({ error: "Sweet not found" });
     }
 
-    // ensure sweet exists and atomically increment quantity
+    if (sweet.unit === "piece") {
+      if (!Number.isInteger(add) || add <= 0) {
+        return res
+          .status(400)
+          .json({ error: "quantity must be a positive integer" });
+      }
+    } else {
+      if (Number.isNaN(add) || add <= 0) {
+        return res
+          .status(400)
+          .json({ error: "quantity must be a positive number" });
+      }
+    }
+
+    // atomically increment quantity
     const updated = await Sweet.findOneAndUpdate(
       { _id: id },
       { $inc: { quantity: add } },

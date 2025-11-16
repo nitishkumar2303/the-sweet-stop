@@ -16,6 +16,21 @@ export default function SweetCard({
       currency: "INR",
       maximumFractionDigits: 2,
     }).format(v ?? 0);
+
+  function priceUnitLabel(unit) {
+    switch (unit) {
+      case "kg":
+        return "kg";
+      case "g":
+        return "100 g"; // show per 100 grams
+      case "ltr":
+        return "ltr";
+      case "ml":
+        return "100 ml"; // show per 100 ml
+      default:
+        return "piece";
+    }
+  }
   return (
     <div className="bg-white rounded-2xl p-6 shadow-md flex flex-col gap-4 border border-zinc-200">
       <div className="flex items-center justify-between">
@@ -23,17 +38,20 @@ export default function SweetCard({
           {sweet.category}
         </span>
         <span className="text-xs font-semibold text-zinc-400">
-          {sweet.quantity} IN STOCK
+          {sweet.quantity} {sweet.unit ?? "piece"} IN STOCK
         </span>
       </div>
 
       <h3 className="text-2xl font-bold text-zinc-900">{sweet.name}</h3>
       <div className="text-3xl font-semibold text-purple-500">
-        {formxatINR(sweet.price)}
+        {formatINR(sweet.price)}
+        <span className="text-sm text-zinc-400 ml-2">
+          /{priceUnitLabel(sweet.unit)}
+        </span>
       </div>
 
       <button
-        onClick={() => onPurchase(sweet._id)}
+        onClick={() => onPurchase(sweet)}
         disabled={purchasing || sweet.quantity <= 0}
         className={`w-full py-3 rounded-lg text-white font-semibold text-lg transition ${
           sweet.quantity > 0
