@@ -208,16 +208,18 @@ export async function deleteSweet(req, res) {
   }
 }
 
-
 export async function purchaseSweet(req, res) {
   try {
     const { id } = req.params;
     // parse quantity, default to 1
-    const requested = req.body?.quantity === undefined ? 1 : Number(req.body.quantity);
+    const requested =
+      req.body?.quantity === undefined ? 1 : Number(req.body.quantity);
 
     // validate quantity
     if (!Number.isInteger(requested) || requested <= 0) {
-      return res.status(400).json({ error: "quantity must be a positive integer" });
+      return res
+        .status(400)
+        .json({ error: "quantity must be a positive integer" });
     }
 
     // check sweet exists
@@ -229,8 +231,8 @@ export async function purchaseSweet(req, res) {
     // Try to atomically decrement if enough stock
     const updated = await Sweet.findOneAndUpdate(
       { _id: id, quantity: { $gte: requested } }, // ensure enough stock
-      { $inc: { quantity: -requested } },        // decrement
-      { new: true }                              // return updated doc
+      { $inc: { quantity: -requested } }, // decrement
+      { new: true } // return updated doc
     ).lean();
 
     // if updated is null => not enough stock
@@ -261,7 +263,9 @@ export async function restockSweet(req, res) {
     }
     const add = Number(qty);
     if (!Number.isInteger(add) || add <= 0) {
-      return res.status(400).json({ error: "quantity must be a positive integer" });
+      return res
+        .status(400)
+        .json({ error: "quantity must be a positive integer" });
     }
 
     // ensure sweet exists and atomically increment quantity

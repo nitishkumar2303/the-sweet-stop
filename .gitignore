@@ -21,4 +21,5 @@ dist/
 build/
 
 
-frontend/dist/
+frontend/dist/backend/uploads/
+backend/tests/
