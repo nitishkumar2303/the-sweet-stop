@@ -41,6 +41,7 @@ export async function createSweet(req, res) {
   }
 }
 
+//admin only
 export async function listSweets(req, res) {
   try {
     const docs = await Sweet.find({}).lean();
@@ -182,6 +183,105 @@ export async function updateSweet(req, res) {
     }
   } catch (err) {
     console.error("updateSweet error:", err);
+    return res.status(500).json({ error: "server error" });
+  }
+}
+
+//admin only
+export async function deleteSweet(req, res) {
+  try {
+    const { id } = req.params;
+
+    // find the sweet
+    const sweet = await Sweet.findById(id);
+    if (!sweet) {
+      return res.status(404).json({ error: "Sweet not found" });
+    }
+
+    // remove it
+    await Sweet.findByIdAndDelete(id);
+
+    return res.status(200).json({ deleted: true });
+  } catch (err) {
+    console.error("deleteSweet error:", err);
+    return res.status(500).json({ error: "server error" });
+  }
+}
+
+
+export async function purchaseSweet(req, res) {
+  try {
+    const { id } = req.params;
+    // parse quantity, default to 1
+    const requested = req.body?.quantity === undefined ? 1 : Number(req.body.quantity);
+
+    // validate quantity
+    if (!Number.isInteger(requested) || requested <= 0) {
+      return res.status(400).json({ error: "quantity must be a positive integer" });
+    }
+
+    // check sweet exists
+    const sweet = await Sweet.findById(id).lean();
+    if (!sweet) {
+      return res.status(404).json({ error: "Sweet not found" });
+    }
+
+    // Try to atomically decrement if enough stock
+    const updated = await Sweet.findOneAndUpdate(
+      { _id: id, quantity: { $gte: requested } }, // ensure enough stock
+      { $inc: { quantity: -requested } },        // decrement
+      { new: true }                              // return updated doc
+    ).lean();
+
+    // if updated is null => not enough stock
+    if (!updated) {
+      return res.status(400).json({ error: "Insufficient stock" });
+    }
+
+    return res.status(200).json({
+      id: String(updated._id),
+      name: updated.name,
+      quantity: updated.quantity,
+    });
+  } catch (err) {
+    console.error("purchaseSweet error:", err);
+    return res.status(500).json({ error: "server error" });
+  }
+}
+
+//admin only
+export async function restockSweet(req, res) {
+  try {
+    const { id } = req.params;
+    const qty = req.body?.quantity;
+
+    // validate presence and type
+    if (qty === undefined) {
+      return res.status(400).json({ error: "quantity is required" });
+    }
+    const add = Number(qty);
+    if (!Number.isInteger(add) || add <= 0) {
+      return res.status(400).json({ error: "quantity must be a positive integer" });
+    }
+
+    // ensure sweet exists and atomically increment quantity
+    const updated = await Sweet.findOneAndUpdate(
+      { _id: id },
+      { $inc: { quantity: add } },
+      { new: true }
+    ).lean();
+
+    if (!updated) {
+      return res.status(404).json({ error: "Sweet not found" });
+    }
+
+    return res.status(200).json({
+      id: String(updated._id),
+      name: updated.name,
+      quantity: updated.quantity,
+    });
+  } catch (err) {
+    console.error("restockSweet error:", err);
     return res.status(500).json({ error: "server error" });
   }
 }
