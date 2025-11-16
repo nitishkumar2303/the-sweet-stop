@@ -4,6 +4,9 @@ import { AuthContext } from "../context/AuthContext";
 
 export default function ProtectedRoute({ children }) {
   const { isAuthenticated, isLoading } = useContext(AuthContext);
-  if (isLoading) return <div className="p-8 text-center">Loading...</div>;
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+
+  if (isLoading) return null; // or a spinner
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  return children;
 }
