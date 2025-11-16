@@ -3,6 +3,8 @@ import User from "../models/User.js";
 
 export async function register(req, res) {
   try {
+    // Debug: log incoming request path, auth header and body to help trace 403 issues
+
     let { name, email, password } = req.body;
 
     if (!name || !email || !password) {
