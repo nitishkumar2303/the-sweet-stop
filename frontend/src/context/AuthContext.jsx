@@ -77,9 +77,15 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     const { data } = await apiLogin(credentials);
     const newToken = data.token;
+
+    // set user immediately from login response so protected routes
+    // treat the session as authenticated right away
+    setUser({ email: data.email, name: data.name, role: data.role });
+
     // set header synchronously and persist token before calling check
     api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
     setToken(newToken);
+
     const ok = await checkAuthStatus(newToken); // pass token explicitly
     if (ok) navigate("/");
     return data;
@@ -90,6 +96,10 @@ export const AuthProvider = ({ children }) => {
     // if backend returns token on register:
     if (data?.token) {
       const newToken = data.token;
+
+      // set user from register response if provided
+      setUser({ email: data.email, name: data.name, role: data.role });
+
       api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
       setToken(newToken);
       await checkAuthStatus(newToken);

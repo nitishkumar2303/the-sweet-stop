@@ -55,6 +55,7 @@ export const login = (credentials) => api.post("/auth/login", credentials);
 export const getSweets = (params) => api.get("/sweets", { params });
 export const searchSweets = (params) => api.get("/sweets/search", { params });
 
+
 export const createSweet = (data) => api.post("/sweets", data); // admin
 export const updateSweet = (id, data) => api.put(`/sweets/${id}`, data); // admin
 export const deleteSweet = (id) => api.delete(`/sweets/${id}`); // admin
