@@ -12,7 +12,6 @@ import {
 
 // ---------- Small modal form component (Create / Edit) ----------
 function SweetFormModal({ open, initial, onClose, onSaved }) {
-  // ensure `initial` is always an object (caller may pass null for "create")
   const init = initial || {};
   const [form, setForm] = useState({
     name: "",
@@ -23,7 +22,6 @@ function SweetFormModal({ open, initial, onClose, onSaved }) {
   });
 
   useEffect(() => {
-    // when modal opens or initial changes, populate the form safely
     const next = initial || {};
     setForm({
       name: next.name ?? "",
@@ -42,7 +40,6 @@ function SweetFormModal({ open, initial, onClose, onSaved }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // basic validation (price/quantity must be numeric)
     if (!form.name || !form.category || form.price === "" || form.quantity === "") {
       return alert("Please fill all fields");
     }
@@ -56,10 +53,8 @@ function SweetFormModal({ open, initial, onClose, onSaved }) {
       };
 
       if (init?.id) {
-        // update existing
         await updateSweet(init.id, body);
       } else {
-        // create new
         await createSweet(body);
       }
 
@@ -106,6 +101,7 @@ function SweetFormModal({ open, initial, onClose, onSaved }) {
 export default function Dashboard() {
   const { user } = useContext(AuthContext);
   const isAdmin = user?.role === "admin";
+
 
   const [sweets, setSweets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -163,9 +159,12 @@ export default function Dashboard() {
       const params = {};
       if (debouncedSearch?.trim()) params.name = debouncedSearch.trim();
       if (category) params.category = category;
-      if (Number(debouncedPrice) < Number(maxDbPrice)) params.max = Number(debouncedPrice);
+      if (Number(debouncedPrice) < Number(maxDbPrice))
+        params.max = Number(debouncedPrice);
 
-      const res = Object.keys(params).length ? await searchSweets(params) : await getSweets();
+      const res = Object.keys(params).length
+        ? await searchSweets(params)
+        : await getSweets();
       const items = res?.data?.items || [];
       setSweets(items.map((it) => ({ id: it.id ?? it._id, ...it })));
     } catch (err) {
@@ -214,7 +213,13 @@ export default function Dashboard() {
   };
 
   const openEdit = (s) => {
-    setEditInitial({ id: s.id, name: s.name, category: s.category, price: s.price, quantity: s.quantity });
+    setEditInitial({
+      id: s.id,
+      name: s.name,
+      category: s.category,
+      price: s.price,
+      quantity: s.quantity,
+    });
     setModalOpen(true);
   };
 
@@ -233,22 +238,42 @@ export default function Dashboard() {
     return "bg-pink-50";
   }
 
+  function formatINR(v) {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 2,
+    }).format(v ?? 0);
+  }
+
   return (
     <div className="space-y-6">
       {/* header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold text-pink-500">Sweet Dashboard</h1>
-          <p className="text-sm text-zinc-500">Welcome back, <span className="font-semibold">{user?.name}</span></p>
+          <h1 className="text-3xl font-extrabold text-pink-500">
+            Sweet Dashboard
+          </h1>
+          <p className="text-sm text-zinc-500">
+            Welcome back, <span className="font-semibold">{user?.name}</span>
+          </p>
         </div>
 
         <div className="flex gap-2 items-center">
           {isAdmin && (
-            <button onClick={() => { setEditInitial(null); setModalOpen(true); }} className="px-3 py-2 rounded bg-green-600 text-white">
+            <button
+              onClick={() => {
+                setEditInitial(null);
+                setModalOpen(true);
+              }}
+              className="px-3 py-2 rounded bg-green-600 text-white"
+            >
               Add Sweet
             </button>
           )}
-          <button onClick={fetchSweets} className="px-3 py-2 border rounded">Refresh</button>
+          <button onClick={fetchSweets} className="px-3 py-2 border rounded">
+            Refresh
+          </button>
         </div>
       </div>
 
@@ -261,7 +286,11 @@ export default function Dashboard() {
           onChange={(e) => setSearch(e.target.value)}
           className="w-full px-3 py-2 rounded-md bg-zinc-800 text-white placeholder-zinc-400"
         />
-        <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-3 py-2 rounded-md bg-zinc-800 text-white">
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="w-full px-3 py-2 rounded-md bg-zinc-800 text-white"
+        >
           <option value="">All Categories</option>
           <option value="Indian">Indian</option>
           <option value="Western">Western</option>
@@ -274,9 +303,16 @@ export default function Dashboard() {
         <div className="px-2 py-1 rounded-md bg-zinc-800 text-white">
           <label className="flex justify-between text-xs text-zinc-400">
             <span>Max price</span>
-            <span className="font-bold text-pink-300">${selectedPrice}</span>
+            <span className="font-bold text-pink-300">{formatINR(selectedPrice)}</span>
           </label>
-          <input type="range" min={minDbPrice} max={maxDbPrice} value={selectedPrice} onChange={(e) => setSelectedPrice(Number(e.target.value))} className="w-full" />
+          <input
+            type="range"
+            min={minDbPrice}
+            max={maxDbPrice}
+            value={selectedPrice}
+            onChange={(e) => setSelectedPrice(Number(e.target.value))}
+            className="w-full"
+          />
         </div>
       </div>
 
@@ -288,30 +324,65 @@ export default function Dashboard() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {sweets.map((sweet) => (
-            <div key={sweet.id} className="bg-white rounded-2xl shadow-lg overflow-hidden border">
-              <div className={`h-28 w-full flex items-center justify-center ${getStockColor(sweet.quantity)}`}>
-                <span className="text-4xl">{getIconForCategory(sweet.category)}</span>
-              </div>
+            <div
+              key={sweet.id}
+              className="bg-white rounded-2xl shadow-lg overflow-hidden border"
+            >
               <div className="p-4">
                 <div className="flex justify-between items-start">
                   <h3 className="text-lg font-bold">{sweet.name}</h3>
-                  <span className="text-xs px-2 py-1 bg-zinc-100 rounded-full">{sweet.category}</span>
+                  <span className="text-xs px-2 py-1 bg-zinc-100 rounded-full">
+                    {sweet.category}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center mt-3">
-                  <div className="text-2xl font-bold text-pink-500">${sweet.price}</div>
-                  <div className="text-sm text-zinc-500">Stock: <span className={sweet.quantity < 5 ? "text-red-500" : "text-green-600"}>{sweet.quantity}</span></div>
+                  <div className="text-2xl font-bold text-pink-500">
+                    {formatINR(sweet.price)}
+                  </div>
+                  <div className="text-sm text-zinc-500">
+                    Stock:{" "}
+                    <span
+                      className={
+                        sweet.quantity < 5 ? "text-red-500" : "text-green-600"
+                      }
+                    >
+                      {sweet.quantity}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="mt-4 flex gap-2">
-                  <button onClick={() => handlePurchase(sweet.id, sweet.name)} disabled={sweet.quantity < 1} className="flex-1 py-2 rounded bg-gradient-to-r from-pink-400 to-pink-500 text-white disabled:opacity-50">
+                  <button
+                    onClick={() => handlePurchase(sweet.id, sweet.name)}
+                    disabled={sweet.quantity < 1}
+                    className="flex-1 py-2 rounded bg-gradient-to-r from-pink-400 to-pink-500 text-white disabled:opacity-50"
+                  >
                     {sweet.quantity < 1 ? "Sold Out" : "Buy"}
                   </button>
 
                   {isAdmin && (
                     <div className="flex gap-2">
-                      <button onClick={() => handleRestock(sweet.id)} title="Restock" className="px-3 py-2 rounded bg-green-100 text-green-700">+</button>
-                      <button onClick={() => openEdit(sweet)} title="Edit" className="px-3 py-2 rounded border">Edit</button>
-                      <button onClick={() => handleDelete(sweet.id)} title="Delete" className="px-3 py-2 rounded bg-red-100 text-red-600">✕</button>
+                      <button
+                        onClick={() => handleRestock(sweet.id)}
+                        title="Restock"
+                        className="px-3 py-2 rounded bg-green-100 text-green-700"
+                      >
+                        +
+                      </button>
+                      <button
+                        onClick={() => openEdit(sweet)}
+                        title="Edit"
+                        className="px-3 py-2 rounded border"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(sweet.id)}
+                        title="Delete"
+                        className="px-3 py-2 rounded bg-red-100 text-red-600"
+                      >
+                        ✕
+                      </button>
                     </div>
                   )}
                 </div>
@@ -319,7 +390,11 @@ export default function Dashboard() {
             </div>
           ))}
 
-          {sweets.length === 0 && <div className="col-span-full text-center py-20 text-zinc-400">No sweets found.</div>}
+          {sweets.length === 0 && (
+            <div className="col-span-full text-center py-20 text-zinc-400">
+              No sweets found.
+            </div>
+          )}
         </div>
       )}
 
@@ -327,8 +402,13 @@ export default function Dashboard() {
       <SweetFormModal
         open={modalOpen}
         initial={editInitial}
-        onClose={() => { setModalOpen(false); setEditInitial(null); }}
-        onSaved={() => { fetchSweets(); }}
+        onClose={() => {
+          setModalOpen(false);
+          setEditInitial(null);
+        }}
+        onSaved={() => {
+          fetchSweets();
+        }}
       />
     </div>
   );
