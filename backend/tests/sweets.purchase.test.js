@@ -12,8 +12,16 @@ let mongoServer;
 // helper to create a real DB user & token
 async function tokenFor(role = "user") {
   const email = `${Date.now()}@test.local`;
-  const user = await User.create({ name: "T", email, password: "Pass123!", role });
-  return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || "testsecret");
+  const user = await User.create({
+    name: "T",
+    email,
+    password: "Pass123!",
+    role,
+  });
+  return jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.JWT_SECRET || "testsecret"
+  );
 }
 
 beforeAll(async () => {
@@ -32,7 +40,9 @@ afterAll(async () => {
 
 describe("POST /api/sweets/:id/purchase - purchase sweet (decrease quantity)", () => {
   test("returns 401 if no token provided", async () => {
-    const res = await request(app).post(`/api/sweets/${new mongoose.Types.ObjectId()}/purchase`);
+    const res = await request(app).post(
+      `/api/sweets/${new mongoose.Types.ObjectId()}/purchase`
+    );
     expect(res.status).toBe(401);
   });
 
@@ -48,7 +58,12 @@ describe("POST /api/sweets/:id/purchase - purchase sweet (decrease quantity)", (
 
   test("returns 400 when insufficient stock", async () => {
     const token = await tokenFor("user");
-    const sweet = await Sweet.create({ name: "Ladoo", category: "Indian", price: 10, quantity: 2 });
+    const sweet = await Sweet.create({
+      name: "Ladoo",
+      category: "Indian",
+      price: 10,
+      quantity: 2,
+    });
 
     const res = await request(app)
       .post(`/api/sweets/${sweet._id}/purchase`)
@@ -60,7 +75,12 @@ describe("POST /api/sweets/:id/purchase - purchase sweet (decrease quantity)", (
 
   test("defaults quantity to 1 when not provided and decreases quantity", async () => {
     const token = await tokenFor("user");
-    const sweet = await Sweet.create({ name: "Barfi", category: "Indian", price: 30, quantity: 3 });
+    const sweet = await Sweet.create({
+      name: "Barfi",
+      category: "Indian",
+      price: 30,
+      quantity: 3,
+    });
 
     const res = await request(app)
       .post(`/api/sweets/${sweet._id}/purchase`)
@@ -77,7 +97,12 @@ describe("POST /api/sweets/:id/purchase - purchase sweet (decrease quantity)", (
 
   test("works for purchasing multiple quantity and reduces correctly", async () => {
     const token = await tokenFor("user");
-    const sweet = await Sweet.create({ name: "Kaju Katli", category: "Indian", price: 100, quantity: 10 });
+    const sweet = await Sweet.create({
+      name: "Kaju Katli",
+      category: "Indian",
+      price: 100,
+      quantity: 10,
+    });
 
     const res = await request(app)
       .post(`/api/sweets/${sweet._id}/purchase`)
@@ -93,7 +118,12 @@ describe("POST /api/sweets/:id/purchase - purchase sweet (decrease quantity)", (
 
   test("returns 400 for invalid purchase quantity (zero or negative)", async () => {
     const token = await tokenFor("user");
-    const sweet = await Sweet.create({ name: "SweetX", category: "Misc", price: 5, quantity: 5 });
+    const sweet = await Sweet.create({
+      name: "SweetX",
+      category: "Misc",
+      price: 5,
+      quantity: 5,
+    });
 
     const res1 = await request(app)
       .post(`/api/sweets/${sweet._id}/purchase`)
@@ -106,5 +136,42 @@ describe("POST /api/sweets/:id/purchase - purchase sweet (decrease quantity)", (
       .set("Authorization", `Bearer ${token}`)
       .send({ quantity: -2 });
     expect(res2.status).toBe(400);
+  });
+
+  test("rejects non-integer purchase for piece unit", async () => {
+    const token = await tokenFor("user");
+    const sweet = await Sweet.create({
+      name: "PieceSweet",
+      category: "Misc",
+      price: 5,
+      quantity: 5,
+      unit: "piece",
+    });
+
+    const res = await request(app)
+      .post(`/api/sweets/${sweet._id}/purchase`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ quantity: 1.5 });
+
+    expect(res.status).toBe(400);
+  });
+
+  test("allows decimal purchase for non-piece unit (kg)", async () => {
+    const token = await tokenFor("user");
+    const sweet = await Sweet.create({
+      name: "Kheer",
+      category: "Indian",
+      price: 200,
+      quantity: 10,
+      unit: "kg",
+    });
+
+    const res = await request(app)
+      .post(`/api/sweets/${sweet._id}/purchase`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ quantity: 0.5 });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty("quantity", 9.5);
   });
 });

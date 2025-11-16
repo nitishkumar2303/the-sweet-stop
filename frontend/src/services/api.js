@@ -55,6 +55,12 @@ export const login = (credentials) => api.post("/auth/login", credentials);
 export const getSweets = (params) => api.get("/sweets", { params });
 export const searchSweets = (params) => api.get("/sweets/search", { params });
 
+/* ------------ CATEGORIES ------------ */
+export const getCategories = () => api.get("/categories");
+export const createCategory = (data) => api.post("/categories", data);
+export const updateCategory = (id, data) => api.put(`/categories/${id}`, data);
+export const deleteCategory = (id) => api.delete(`/categories/${id}`);
+
 export const createSweet = (data) => api.post("/sweets", data); // admin
 export const createSweetForm = (formData) =>
   api.post("/sweets", formData, {

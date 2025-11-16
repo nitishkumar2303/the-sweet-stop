@@ -28,8 +28,16 @@ afterAll(async () => {
 // helper to create a user and return token
 async function tokenFor(role = "user") {
   const email = `${Date.now()}@test.local`;
-  const user = await User.create({ name: "T", email, password: "Pass123!", role });
-  const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || "testsecret");
+  const user = await User.create({
+    name: "T",
+    email,
+    password: "Pass123!",
+    role,
+  });
+  const token = jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.JWT_SECRET || "testsecret"
+  );
   return token;
 }
 
@@ -64,7 +72,12 @@ describe("POST /api/sweets - create sweet (admin only)", () => {
 
   test("admin can create a sweet and returns 201 with sweet data", async () => {
     const token = await tokenFor("admin");
-    const body = { name: "Gulab Jamun", category: "Indian", price: 25, quantity: 30 };
+    const body = {
+      name: "Gulab Jamun",
+      category: "Indian",
+      price: 25,
+      quantity: 30,
+    };
 
     const res = await request(app)
       .post("/api/sweets")
@@ -74,6 +87,8 @@ describe("POST /api/sweets - create sweet (admin only)", () => {
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty("id");
     expect(res.body).toHaveProperty("name", "Gulab Jamun");
+    // default unit should be present
+    expect(res.body).toHaveProperty("unit", "piece");
   });
 
   test("returns 409 when creating a sweet with duplicate name (admin)", async () => {
