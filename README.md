@@ -111,7 +111,7 @@ nitishkumar@Nitishs-MacBook-Air backend % npm test
 > backend@1.0.0 test
 > cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --runInBand
 
-(node:22893) ExperimentalWarning: VM Modules is an experimental feature and might change at any time (Use node --trace-warnings ... to show where the warning was created)
+(node:22893) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
 
  PASS  tests/sweets.purchase.test.js
  PASS  tests/sweets.update.test.js
@@ -130,7 +130,6 @@ Tests:       51 passed, 51 total
 Snapshots:   0 total
 Time:        10.968 s
 Ran all test suites.
-
 
 
 ## 🚀 Setup Instructions
