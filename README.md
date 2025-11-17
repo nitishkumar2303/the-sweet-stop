@@ -106,8 +106,7 @@ This project was built entirely using **Test-Driven Development (TDD)**.
 Below is the real output from running the full backend test suite:
 
 
-nitishkumar@Nitishs-MacBook-Air backend % npm test
-
+```
 > backend@1.0.0 test
 > cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --runInBand
 
@@ -130,6 +129,10 @@ Tests:       51 passed, 51 total
 Snapshots:   0 total
 Time:        10.968 s
 Ran all test suites.
+```
+
+<img width="1346" height="642" alt="image" src="https://github.com/user-attachments/assets/06791e89-09bf-48f4-9d24-2b6289ce57c7" />
+
 
 
 ## 🚀 Setup Instructions
