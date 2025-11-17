@@ -1,4 +1,4 @@
-<img width="2444" height="1604" alt="image" src="https://github.com/user-attachments/assets/769b2136-5822-4e1b-b080-05b436ec70ba" /># The Sweet Stop
+# The Sweet Stop
 
 ## Tools Used:
 - GitHub Copilot
@@ -26,22 +26,22 @@ This project includes:
 
 ## 📸 Screenshots
 
-> *(Add your screenshots here once deployed — sample placeholders below)*
+> *(Add your screenshots here once deployed — sample placeholders below)*.
 
 - **Login Page**
-  <img width="2344" height="1598" alt="image" src="https://github.com/user-attachments/assets/0a3ee1d1-fabf-4c73-8cbc-b5e8ab56a858" />
+  <img width="2196" height="1602" alt="image" src="https://github.com/user-attachments/assets/8f8fa753-4464-47c6-b04f-abcbaf46aef7" />
 
 - **Signup Page**
-![Uploading image.png…]()
-
-- **User Dashboard**
-  ![Uploading image.png…]()
-
-
-- **Admin Dashboard**
-![Uploading image.png…]()
+  <img width="2270" height="1602" alt="image" src="https://github.com/user-attachments/assets/096136e0-3612-47a4-bb09-b18a124b081a" />
 
   
+- **User Dashboard**
+  <img width="2326" height="1600" alt="image" src="https://github.com/user-attachments/assets/38bf750a-22ac-405d-8172-462a4256a913" />
+  
+- **Admin Dashboard**
+  <img width="2300" height="1606" alt="image" src="https://github.com/user-attachments/assets/0e155d40-9223-480d-8b6c-0e9877146da2" />
+
+
 
 ---
 
@@ -99,6 +99,39 @@ This project includes:
 - React Context API (Auth)
 
 ---
+
+## 🧪 Test Report (TDD)
+
+This project was built entirely using **Test-Driven Development (TDD)**.  
+Below is the real output from running the full backend test suite:
+
+
+nitishkumar@Nitishs-MacBook-Air backend % npm test
+
+> backend@1.0.0 test
+> cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --runInBand
+
+(node:22893) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ PASS  tests/sweets.purchase.test.js
+ PASS  tests/sweets.update.test.js
+ PASS  tests/sweets.search.test.js
+ PASS  tests/sweets.restock.test.js
+ PASS  tests/sweets.delete.test.js
+ PASS  tests/sweets.create.test.js
+ PASS  tests/auth-login.test.js
+ PASS  tests/sweets.list.test.js
+ PASS  tests/admin.middleware.test.js
+ PASS  tests/auth.test.js
+ PASS  tests/auth.middleware.test.js
+
+Test Suites: 11 passed, 11 total
+Tests:       51 passed, 51 total
+Snapshots:   0 total
+Time:        10.968 s, estimated 11 s
+Ran all test suites.
+
+
 
 ## 🚀 Setup Instructions
 
