@@ -10,7 +10,7 @@ const ALLOWED_UNITS = ["piece", "kg", "g", "ltr", "ml"];
 
 export async function createSweet(req, res) {
   try {
-    const { name, category, price, quantity, unit } = req.body;
+    const { name, category, price, quantity, unit, imageUrl } = req.body;
 
     // Validate input
     if (!name || !category || price === undefined || quantity === undefined) {
@@ -52,6 +52,7 @@ export async function createSweet(req, res) {
       price,
       quantity,
       unit: unit ?? undefined,
+      imageUrl: imageUrl ?? "",
     });
 
     return res.status(201).json({
@@ -61,6 +62,7 @@ export async function createSweet(req, res) {
       price: sweet.price,
       quantity: sweet.quantity,
       unit: sweet.unit,
+      imageUrl: sweet.imageUrl || "",
     });
   } catch (err) {
     console.error("createSweet error:", err);
@@ -81,6 +83,7 @@ export async function listSweets(req, res) {
       price: d.price,
       quantity: d.quantity,
       unit: d.unit ?? "piece",
+      imageUrl: d.imageUrl || "",
     }));
 
     return res.status(200).json({ items });
@@ -132,6 +135,7 @@ export async function searchSweets(req, res) {
       price: d.price,
       quantity: d.quantity,
       unit: d.unit ?? "piece",
+      imageUrl: d.imageUrl || "",
     }));
 
     return res.status(200).json({ items });
@@ -144,7 +148,7 @@ export async function searchSweets(req, res) {
 export async function updateSweet(req, res) {
   try {
     const { id } = req.params;
-    const { name, category, price, quantity, unit } = req.body;
+    const { name, category, price, quantity, unit, imageUrl } = req.body;
 
     // Build update object dynamically
     const updates = {};
@@ -153,6 +157,7 @@ export async function updateSweet(req, res) {
     if (price !== undefined) updates.price = price;
     if (quantity !== undefined) updates.quantity = quantity;
     if (unit !== undefined) updates.unit = unit;
+    if (imageUrl !== undefined) updates.imageUrl = imageUrl;
 
     // No fields provided
     if (Object.keys(updates).length === 0) {
@@ -230,6 +235,7 @@ export async function updateSweet(req, res) {
         price: updated.price,
         quantity: updated.quantity,
         unit: updated.unit,
+        imageUrl: updated.imageUrl || "",
       });
     } catch (err) {
       if (err?.code === 11000) {

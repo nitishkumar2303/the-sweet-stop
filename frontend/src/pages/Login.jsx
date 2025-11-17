@@ -52,6 +52,23 @@ export default function Login() {
     }
   };
 
+  // One-click demo login for hosted demo visitors (admin/user)
+  const handleDemo = async (email, password) => {
+    setError("");
+    setIsLoading(true);
+    try {
+      await login({ email, password });
+      navigate("/");
+    } catch (err) {
+      console.error("Demo login error:", err);
+      const serverMsg =
+        err?.response?.data?.error || err?.message || "Demo login failed.";
+      setError(serverMsg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div
       className="min-h-screen flex items-center justify-center px-4"
@@ -125,7 +142,10 @@ export default function Login() {
 
           {/* Sign up link */}
           <div className="mt-6 text-center">
-            <Link to="/register" className="text-pink-500 font-medium hover:underline">
+            <Link
+              to="/register"
+              className="text-pink-500 font-medium hover:underline"
+            >
               Don't have an account? Sign Up
             </Link>
           </div>
@@ -134,12 +154,26 @@ export default function Login() {
           <div className="mt-6 border-t pt-4 text-center">
             <div className="text-xs text-zinc-400">Demo Credentials:</div>
             <div className="mt-2 text-sm text-zinc-700">
-              <span className="font-medium">Admin</span> login:{" "}
-              <code className="bg-zinc-100 px-1 rounded">admin@example.com</code>
-              <br />
-              <span className="font-medium">User</span> login:{" "}
-              <code className="bg-zinc-100 px-1 rounded">user@example.com</code>
-              <div className="text-xs text-zinc-400 mt-2">(use the corresponding password or register your own account)</div>
+              
+              
+              
+
+              <div className="flex gap-3 justify-center mt-4">
+                <button
+                  type="button"
+                  onClick={() => handleDemo("admin@example.com", "Admin123!")}
+                  className="px-4 py-2 rounded-md bg-pink-500 text-white font-medium hover:bg-pink-600"
+                >
+                  Login as Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDemo("user@example.com", "User123!")}
+                  className="px-4 py-2 rounded-md bg-zinc-800 text-white font-medium hover:bg-zinc-900"
+                >
+                  Login as User
+                </button>
+              </div>
             </div>
           </div>
         </div>
