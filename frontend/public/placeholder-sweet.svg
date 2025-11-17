@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1">
+      <stop offset="0" stop-color="#ffe4e6" />
+      <stop offset="1" stop-color="#fce7f3" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#g)" />
+  <g transform="translate(0,0)" fill="#f472b6" opacity="0.95">
+    <text x="50%" y="45%" font-family="Inter, Roboto, Arial" font-size="72" fill="#7c2d6b" text-anchor="middle">Sweet Image</text>
+    <text x="50%" y="55%" font-family="Inter, Roboto, Arial" font-size="28" fill="#6b21a8" text-anchor="middle">Add an image URL when creating the sweet</text>
+  </g>
+  <g transform="translate(40,40)" opacity="0.12">
+    <rect x="900" y="40" width="240" height="160" rx="16" fill="#ffffff" />
+    <circle cx="200" cy="600" r="120" fill="#ffffff" />
+  </g>
+</svg>

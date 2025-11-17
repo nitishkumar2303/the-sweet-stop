@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useContext, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useContext,
+  useCallback,
+  useRef,
+} from "react";
 import { AuthContext } from "../context/AuthContext";
 import {
   getSweets,
@@ -15,6 +21,24 @@ import {
 } from "../services/api";
 
 // ---------- Small modal form component (Create / Edit) ----------
+function useDebounce(value, delay) {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return v;
+}
+
+function Modal({ open, children }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      {children}
+    </div>
+  );
+}
+
 function SweetFormModal({ open, initial, onClose, onSaved, categories }) {
   const init = initial || {};
   const [form, setForm] = useState({
@@ -23,21 +47,19 @@ function SweetFormModal({ open, initial, onClose, onSaved, categories }) {
     price: "",
     quantity: "",
     unit: "piece",
-    ...init,
+    imageUrl: "",
   });
 
   useEffect(() => {
-    const next = initial || {};
     setForm({
-      name: next.name ?? "",
-      category: next.category ?? "",
-      price: next.price ?? "",
-      quantity: next.quantity ?? "",
-      unit: next.unit ?? "piece",
+      name: init.name ?? "",
+      category: init.category ?? "",
+      price: init.price ?? "",
+      quantity: init.quantity ?? "",
+      unit: init.unit ?? "piece",
+      imageUrl: init.imageUrl ?? "",
     });
-  }, [initial, open]);
-
-  if (!open) return null;
+  }, [init, open]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -50,11 +72,9 @@ function SweetFormModal({ open, initial, onClose, onSaved, categories }) {
       !form.name ||
       !form.category ||
       form.price === "" ||
-      form.quantity === "" ||
-      !form.unit
-    ) {
+      form.quantity === ""
+    )
       return alert("Please fill all fields");
-    }
 
     try {
       const body = {
@@ -63,13 +83,11 @@ function SweetFormModal({ open, initial, onClose, onSaved, categories }) {
         price: Number(form.price),
         quantity: Number(form.quantity),
         unit: form.unit,
+        imageUrl: (form.imageUrl || "").trim(),
       };
 
-      if (init?.id) {
-        await updateSweet(init.id, body);
-      } else {
-        await createSweet(body);
-      }
+      if (init?.id) await updateSweet(init.id, body);
+      else await createSweet(body);
 
       onSaved?.();
       onClose?.();
@@ -80,7 +98,7 @@ function SweetFormModal({ open, initial, onClose, onSaved, categories }) {
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
+    <Modal open={open}>
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-md bg-white rounded-lg p-6 shadow-lg"
@@ -150,6 +168,19 @@ function SweetFormModal({ open, initial, onClose, onSaved, categories }) {
           </select>
         </div>
 
+        <div className="mt-2">
+          <label className="block text-sm text-gray-600">
+            Image URL (optional)
+          </label>
+          <input
+            name="imageUrl"
+            value={form.imageUrl}
+            onChange={handleChange}
+            placeholder="https://.../image.jpg"
+            className="w-full p-2 border rounded mb-2"
+          />
+        </div>
+
         <div className="flex justify-end gap-2 mt-4">
           <button
             type="button"
@@ -166,36 +197,45 @@ function SweetFormModal({ open, initial, onClose, onSaved, categories }) {
           </button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }
 
-// small row component for category listing/editing
+// Small row to manage a single category inside the Manage Categories modal
 function CategoryRow({ cat, onUpdate, onDelete }) {
   const [editing, setEditing] = useState(false);
-  const [name, setName] = useState(cat.name);
+  const [name, setName] = useState(cat?.name || "");
 
-  useEffect(() => setName(cat.name), [cat.name]);
+  useEffect(() => setName(cat?.name || ""), [cat]);
+
+  const handleSave = async () => {
+    if (!name || !name.trim()) return alert("Enter a name");
+    try {
+      await onUpdate(cat.id, name.trim());
+      setEditing(false);
+    } catch (err) {
+      alert(err?.response?.data?.error || "Update failed");
+    }
+  };
 
   return (
     <div className="flex items-center justify-between p-2 border rounded">
-      {editing ? (
-        <input
-          className="flex-1 p-1 border rounded"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-      ) : (
-        <div className="flex-1">{cat.name}</div>
-      )}
-      <div className="flex gap-2 ml-3">
+      <div className="flex-1">
+        {editing ? (
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full p-2 border rounded"
+          />
+        ) : (
+          <div className="font-medium">{cat.name}</div>
+        )}
+      </div>
+      <div className="ml-4 flex items-center gap-2">
         {editing ? (
           <>
             <button
-              onClick={async () => {
-                await onUpdate(cat.id, name);
-                setEditing(false);
-              }}
+              onClick={handleSave}
               className="px-2 py-1 rounded bg-blue-600 text-white"
             >
               Save
@@ -251,15 +291,7 @@ export default function Dashboard() {
   const [editInitial, setEditInitial] = useState(null);
   const [categoriesModalOpen, setCategoriesModalOpen] = useState(false);
 
-  // debounce small helper
-  function useDebounce(value, delay) {
-    const [v, setV] = useState(value);
-    useEffect(() => {
-      const t = setTimeout(() => setV(value), delay);
-      return () => clearTimeout(t);
-    }, [value, delay]);
-    return v;
-  }
+  // debounce small helper (top-level hook used)
   const debouncedSearch = useDebounce(search, 350);
   const debouncedPrice = useDebounce(selectedPrice, 200);
 
@@ -299,28 +331,37 @@ export default function Dashboard() {
   }, []);
 
   // main fetch function
-  const fetchSweets = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const params = {};
-      if (debouncedSearch?.trim()) params.name = debouncedSearch.trim();
-      if (category) params.category = category;
-      if (Number(debouncedPrice) < Number(maxDbPrice))
-        params.max = Number(debouncedPrice);
+  const isFetchingRef = useRef(false);
+  const fetchSweets = useCallback(
+    async (showLoading = true) => {
+      if (isFetchingRef.current) return;
+      isFetchingRef.current = true;
+      if (showLoading) {
+        setLoading(true);
+        setError("");
+      }
+      try {
+        const params = {};
+        if (debouncedSearch?.trim()) params.name = debouncedSearch.trim();
+        if (category) params.category = category;
+        if (Number(debouncedPrice) < Number(maxDbPrice))
+          params.max = Number(debouncedPrice);
 
-      const res = Object.keys(params).length
-        ? await searchSweets(params)
-        : await getSweets();
-      const items = res?.data?.items || [];
-      setSweets(items.map((it) => ({ id: it.id ?? it._id, ...it })));
-    } catch (err) {
-      console.error("fetchSweets error", err);
-      setError("Failed to load sweets.");
-    } finally {
-      setLoading(false);
-    }
-  }, [debouncedSearch, category, debouncedPrice, maxDbPrice]);
+        const res = Object.keys(params).length
+          ? await searchSweets(params)
+          : await getSweets();
+        const items = res?.data?.items || [];
+        setSweets(items.map((it) => ({ id: it.id ?? it._id, ...it })));
+      } catch (err) {
+        console.error("fetchSweets error", err);
+        if (showLoading) setError("Failed to load sweets.");
+      } finally {
+        if (showLoading) setLoading(false);
+        isFetchingRef.current = false;
+      }
+    },
+    [debouncedSearch, category, debouncedPrice, maxDbPrice]
+  );
 
   useEffect(() => {
     fetchSweets();
@@ -401,26 +442,12 @@ export default function Dashboard() {
   const [purchaseQty, setPurchaseQty] = useState("");
   const [purchaseError, setPurchaseError] = useState("");
 
-  function defaultQtyForUnit(u) {
-    switch (u) {
-      case "piece":
-        return "1";
-      case "kg":
-        return "1";
-      case "g":
-        return "100";
-      case "ltr":
-        return "1";
-      case "ml":
-        return "100";
-      default:
-        return "1";
-    }
-  }
+  const defaultQtyForUnit = (u = "piece") =>
+    ({ piece: "1", kg: "1", g: "100", ltr: "1", ml: "100" }[u] || "1");
 
   function openPurchaseModal(sweet) {
     setPurchaseTarget(sweet);
-    setPurchaseQty(defaultQtyForUnit(sweet.unit ?? "piece"));
+    setPurchaseQty(defaultQtyForUnit(sweet.unit));
     setPurchaseError("");
     setPurchaseModalOpen(true);
   }
@@ -449,7 +476,14 @@ export default function Dashboard() {
       await purchaseSweet(sweet.id ?? sweet._id, q);
       setPurchaseModalOpen(false);
       setPurchaseTarget(null);
-      fetchSweets();
+      // update local state to avoid full refresh and preserve scroll
+      setSweets((list) =>
+        list.map((it) =>
+          it.id === (sweet.id ?? sweet._id)
+            ? { ...it, quantity: it.quantity - q }
+            : it
+        )
+      );
     } catch (err) {
       setPurchaseError(err?.response?.data?.error || "Purchase failed");
     }
@@ -461,7 +495,12 @@ export default function Dashboard() {
     if (!qty || qty <= 0) return alert("Invalid quantity");
     try {
       await restockSweet(id, qty);
-      fetchSweets();
+      // update local state so we don't show global loading and reset scroll
+      setSweets((list) =>
+        list.map((it) =>
+          it.id === id ? { ...it, quantity: (it.quantity || 0) + qty } : it
+        )
+      );
     } catch (err) {
       alert(err?.response?.data?.error || "Restock failed");
     }
@@ -485,47 +524,28 @@ export default function Dashboard() {
       price: s.price,
       quantity: s.quantity,
       unit: s.unit ?? "piece",
+      imageUrl: s.imageUrl ?? "",
     });
     setModalOpen(true);
   };
 
-  // helpers for card visuals
-  function getIconForCategory(cat = "") {
-    const c = String(cat).toLowerCase();
-    if (c.includes("chocolate")) return "🍫";
-    if (c.includes("indian")) return "🪔";
-    if (c.includes("cake") || c.includes("pastry")) return "🍰";
-    if (c.includes("donut")) return "🍩";
-    return "🍬";
-  }
-  function getStockColor(qty) {
-    if (qty === 0) return "bg-zinc-200";
-    if (qty < 5) return "bg-orange-100";
-    return "bg-pink-50";
-  }
+  // helpers for card visuals (kept minimal)
+  // small helpers simplified
+  const getPresetsForUnit = (u = "piece") => {
+    if (u === "piece") return [1, 2, 5];
+    if (u === "kg" || u === "ltr") return [0.25, 0.5, 1];
+    if (u === "g" || u === "ml") return [50, 100, 250];
+    return [1, 2, 5];
+  };
 
-  function formatINR(v) {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 2,
-    }).format(v ?? 0);
-  }
-
-  function priceUnitLabel(unit) {
-    switch (unit) {
-      case "kg":
-        return "kg";
-      case "g":
-        return "100 g";
-      case "ltr":
-        return "ltr";
-      case "ml":
-        return "100 ml";
-      default:
-        return "piece";
-    }
-  }
+  const moneyFormatter = new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  });
+  const formatINR = (v) => moneyFormatter.format(v ?? 0);
+  const priceUnitLabel = (u = "piece") =>
+    ({ kg: "kg", g: "100 g", ltr: "ltr", ml: "100 ml" }[u] || "piece");
 
   return (
     <div className="space-y-6">
@@ -563,7 +583,12 @@ export default function Dashboard() {
               Manage Categories
             </button>
           )}
-          <button onClick={fetchSweets} className="px-3 py-2 border rounded">
+          <button
+            type="button"
+            onClick={() => fetchSweets()}
+            disabled={loading}
+            className="px-3 py-2 border rounded disabled:opacity-50"
+          >
             Refresh
           </button>
         </div>
@@ -620,6 +645,19 @@ export default function Dashboard() {
               key={sweet.id}
               className="bg-white rounded-2xl shadow-lg overflow-hidden border"
             >
+              {/* image */}
+              <div className="w-full h-40 bg-zinc-100 overflow-hidden">
+                <img
+                  src={sweet.imageUrl || "/placeholder-sweet.svg"}
+                  alt={sweet.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "/placeholder-sweet.svg";
+                  }}
+                />
+              </div>
+
               <div className="p-4">
                 <div className="flex justify-between items-start">
                   <h3 className="text-lg font-bold">{sweet.name}</h3>
@@ -713,26 +751,16 @@ export default function Dashboard() {
                 Quantity ({purchaseTarget.unit ?? "piece"})
               </label>
               <div className="flex gap-2 mt-2">
-                {/* presets based on unit */}
-                {(function renderPresets() {
-                  const u = purchaseTarget.unit ?? "piece";
-                  let presets = [];
-                  if (u === "piece") presets = [1, 2, 5];
-                  else if (u === "kg") presets = [0.25, 0.5, 1];
-                  else if (u === "g") presets = [50, 100, 250];
-                  else if (u === "ltr") presets = [0.25, 0.5, 1];
-                  else if (u === "ml") presets = [50, 100, 250];
-                  return presets.map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPurchaseQty(String(p))}
-                      className="px-3 py-1 rounded bg-zinc-100 hover:bg-zinc-200"
-                    >
-                      {p}
-                    </button>
-                  ));
-                })()}
+                {getPresetsForUnit(purchaseTarget.unit).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPurchaseQty(String(p))}
+                    className="px-3 py-1 rounded bg-zinc-100 hover:bg-zinc-200"
+                  >
+                    {p}
+                  </button>
+                ))}
               </div>
               <input
                 className="w-full p-2 border rounded mt-3"
@@ -773,7 +801,7 @@ export default function Dashboard() {
           setEditInitial(null);
         }}
         onSaved={() => {
-          fetchSweets();
+          fetchSweets(false);
           fetchCategories();
         }}
       />

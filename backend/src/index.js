@@ -9,6 +9,7 @@ import categoriesRoutes from "./routes/categories.js";
 
 import authMiddleware from "./middleware/auth.middleware.js";
 import adminMiddleware from "./middleware/admin.middleware.js";
+import User from "./models/User.js";
 
 const app = express();
 
@@ -64,6 +65,51 @@ if (process.env.NODE_ENV !== "test") {
           console.error("Server error:", err);
         }
       });
+
+      // Seed demo accounts (useful for hosting a live demo where
+      // recruiters can sign in without registering). Runs once
+      // after the server starts if the accounts are missing.
+      // Can be disabled by setting `DISABLE_DEMO_SEED=true` in the environment.
+      if (process.env.DISABLE_DEMO_SEED !== "true") {
+        (async function seedDemoUsers() {
+          try {
+            const demoAccounts = [
+              {
+                name: "Admin Demo",
+                email: "admin@example.com",
+                password: "Admin123!",
+                role: "admin",
+              },
+              {
+                name: "User Demo",
+                email: "user@example.com",
+                password: "User123!",
+                role: "user",
+              },
+            ];
+
+            for (const acct of demoAccounts) {
+              const exists = await User.findOne({ email: acct.email });
+              if (!exists) {
+                const u = new User({
+                  name: acct.name,
+                  email: acct.email,
+                  password: acct.password,
+                  role: acct.role,
+                });
+                await u.save();
+                console.log(
+                  `Seeded demo account: ${acct.email} (${acct.role})`
+                );
+              }
+            }
+          } catch (err) {
+            console.error("Error seeding demo users:", err);
+          }
+        })();
+      } else {
+        console.log("Demo seeding disabled via DISABLE_DEMO_SEED=true");
+      }
     })
     .catch((err) => {
       console.error("Mongo Connection error:", err);

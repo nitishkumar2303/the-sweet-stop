@@ -13,6 +13,8 @@ const sweetSchema = new mongoose.Schema(
       default: "piece",
       required: true,
     },
+    // optional image URL for sweet picture
+    imageUrl: { type: String, trim: true, default: "" },
   },
   {
     timestamps: true,

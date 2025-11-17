@@ -1,2 +1,185 @@
-# the-sweet-stop
-A full-stack Sweet Shop Management System
+# The Sweet Stop
+
+## Tools Used:
+- GitHub Copilot
+- ChatGPT
+
+## How I Used Them:
+- GitHub Copilot helped with autocompleting code snippets and suggesting improvements.
+- ChatGPT was instrumental in brainstorming solutions, debugging issues, generating test cases, and assisting with TDD workflows.
+
+## Reflection on AI Workflow:
+Using ChatGPT alongside GitHub Copilot enhanced my development process significantly. ChatGPT's ability to understand complex problems and provide detailed explanations complemented Copilot’s code suggestions, making the workflow more efficient and effective.
+
+# 🍬 The Sweet Stop — A Sweet Shop Management System
+
+Welcome to **The Sweet Stop**, a fully tested full‑stack web application built using **TDD (Test‑Driven Development)**.  
+This project includes:
+
+- A complete **Node.js + Express API**  
+- A **React + Vite** frontend  
+- **Role‑based authentication**  
+- **Inventory & Category management**  
+- And a clean, modern UI for both Users and Admins
+
+---
+
+## 📸 Screenshots
+
+> *(Add your screenshots here once deployed — sample placeholders below)*
+
+- **Login Page**
+- **User Dashboard**
+- **Admin Dashboard**
+- **Purchase Modal**
+- **Admin Category Manager**
+
+---
+
+## ✨ Features
+
+### 🔐 Authentication
+- Secure registration & login using **JWT**
+- Password hashing with **bcryptjs**
+
+### 🧑‍💼 Role-Based Access
+- **User:** Browse sweets, buy items
+- **Admin:** Full CRUD on sweets & categories
+
+### 🍭 Sweet Management (Admin)
+- Add new sweets (name, category, price, quantity, unit, and image URL)
+- Edit sweets
+- Delete sweets
+- Restock items
+
+### 📦 Category Manager (Admin)
+- Create category
+- Edit category
+- Delete category *(only if not used by any sweet)*
+- Orphan category cleanup
+
+### 🛒 User Dashboard
+- Search sweets by name  
+- Filter by category  
+- Filter by max price  
+- Purchase sweets with preset quantities  
+- Mobile‑friendly responsive UI  
+
+### 💸 Purchase Flow
+- Unit‑aware purchasing: piece, kg, g, ltr, ml  
+- Auto‑suggested presets (e.g., 1kg, 0.5kg, 250g)
+
+---
+
+## 🛠️ Tech Stack
+
+### **Backend**
+- Node.js  
+- Express.js  
+- MongoDB + Mongoose  
+- JWT Authentication  
+- Jest + Supertest for TDD  
+- mongodb-memory-server for in‑memory test DB
+
+### **Frontend**
+- React 18  
+- Vite  
+- Tailwind CSS  
+- Axios  
+- React Router v6  
+- React Context API (Auth)
+
+---
+
+## 🚀 Setup Instructions
+
+### ✅ Prerequisites
+- Node.js **v18+**
+- MongoDB running locally **OR** Atlas cluster
+
+---
+
+## 1️⃣ Backend Setup
+
+```bash
+cd backend
+npm install
+```
+
+Create a `.env` file:
+
+```
+MONGO_URI=mongodb://127.0.0.1:27017/sweetshop
+PORT=5050
+JWT_SECRET=your_super_secret_key_here
+```
+
+Run server:
+
+```bash
+npm run dev
+```
+
+API runs at: **http://localhost:5050**
+
+---
+
+## 2️⃣ Frontend Setup
+
+From project root:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend runs at: **http://localhost:5173**
+
+---
+
+## 🧪 Running Tests (Backend – TDD)
+
+```bash
+cd backend
+npm test
+```
+
+Expected output:
+
+```
+8 passed, 36 tests total
+All suites green ✔️
+```
+
+---
+
+## 🤖 My AI Usage 
+
+For this project, I used AI tools responsibly as a **development assistant**, not a replacement for understanding.
+
+### 🧰 Tools Used
+- **GitHub Copilot** – in-editor coding assistant 
+- **ChatGPT** – frontend UI refinement, React best practices  
+
+### 📌 How AI Helped Me
+- **Frontend scaffolding:** Copilot generated initial JSX & component skeletons (SweetFormModal, Register, Dashboard UI layout).
+- **Backend CRUD logic:** Copilot suggested repeated controller patterns which I refined manually.
+- **Bug fixing:** I used AI to debug search filters and was able to introduce debouncing to avoid excessive API calls.
+- **UI Improvement:** ChatGPT helped refine card layouts, spacing, contrasts, and responsive styles.
+
+### 🙇 What I Learned
+AI is powerful, but:
+- It **never replaces careful code review**
+- All security-sensitive sections (authentication, roles, controller validation) were **reviewed and rewritten by me**
+- TDD helped validate every feature before integration
+
+AI accelerated the process, but **engineering judgement** ensured quality.
+
+
+---
+
+## 🎉 Thank You!
+
+If you're a recruiter viewing this project:  
+You can log in directly using the credentials provided in the deployed version — no signup needed.
