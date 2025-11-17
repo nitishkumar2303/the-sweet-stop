@@ -13,45 +13,59 @@ import User from "./models/User.js";
 
 const app = express();
 
+// --- CORS setup (use env or fall back to localhost dev URL)
+// Set FRONTEND_ORIGIN in Vercel/Hostinger to your frontend origin (e.g. https://sweetstop.vercel.app)
+const FRONTEND_ORIGIN = (process.env.FRONTEND_ORIGIN || "http://localhost:5173")
+  .replace(/^['"]|['"]$/g, "");
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: FRONTEND_ORIGIN,
     credentials: true,
   })
 );
 app.use(express.json());
 
+// --- API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/sweets", sweetsRoutes);
 app.use("/api/categories", categoriesRoutes);
 
-//made this route for testing purpose
+// demo test routes
 app.get("/api/test/protected", authMiddleware, (req, res) => {
   return res.json({ ok: true });
 });
-
-// test-only admin route
 app.get("/api/test/admin", authMiddleware, adminMiddleware, (req, res) => {
   return res.json({ ok: true });
 });
 
-if (process.env.NODE_ENV !== "test") {
-  let uri = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/sweetshop";
+// --- Helper: normalize URI from .env (remove accidental quotes)
+let mongoUri = (process.env.MONGO_URI || "mongodb://127.0.0.1:27017/sweetshop")
+  .replace(/^['"]|['"]$/g, "");
 
-  // Strip surrounding single/double quotes if present (common .env mistake)
-  uri = uri.replace(/^['\"]|['\"]$/g, "");
-
-  // Log an attempt to connect (trimmed for safety)
-  try {
-    const preview = uri.length > 80 ? uri.slice(0, 80) + "..." : uri;
-    console.log("Attempting Mongo connect to:", preview);
-  } catch (e) {
-    console.log("Attempting Mongo connect (unable to preview uri)");
+// Connect to MongoDB — avoid reconnecting if already connected (helps serverless)
+async function ensureMongo() {
+  if (mongoose.connection.readyState === 1) {
+    // already connected
+    return;
   }
+  // recommended options
+  const opts = {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  };
 
-  mongoose
-    .connect(uri)
-    .then(() => {
+  await mongoose.connect(mongoUri, opts);
+}
+
+async function startServerIfNeeded() {
+  try {
+    await ensureMongo();
+
+    // If running locally (not serverless/Vercel), start the HTTP listener.
+    // Vercel (and many serverless providers) expect you to export the app and NOT call listen.
+    const isServerless = !!process.env.VERCEL || process.env.NODE_ENV === "serverless";
+    if (!isServerless) {
       const PORT = process.env.PORT || 5000;
       const server = app.listen(PORT, () => {
         console.log(`Server is running on ${PORT}`);
@@ -65,55 +79,65 @@ if (process.env.NODE_ENV !== "test") {
           console.error("Server error:", err);
         }
       });
+    } else {
+      console.log("Running in serverless mode (no local listen).");
+    }
 
-      // Seed demo accounts (useful for hosting a live demo where
-      // recruiters can sign in without registering). Runs once
-      // after the server starts if the accounts are missing.
-      // Can be disabled by setting `DISABLE_DEMO_SEED=true` in the environment.
-      if (process.env.DISABLE_DEMO_SEED !== "true") {
-        (async function seedDemoUsers() {
-          try {
-            const demoAccounts = [
-              {
-                name: "Admin Demo",
-                email: "admin@example.com",
-                password: "Admin123!",
-                role: "admin",
-              },
-              {
-                name: "User Demo",
-                email: "user@example.com",
-                password: "User123!",
-                role: "user",
-              },
-            ];
+    // Demo user seeding (optional) — only if not disabled
+    if (process.env.DISABLE_DEMO_SEED !== "true") {
+      try {
+        const demoAccounts = [
+          {
+            name: "Admin Demo",
+            email: "admin@example.com",
+            password: "Admin123!",
+            role: "admin",
+          },
+          {
+            name: "User Demo",
+            email: "user@example.com",
+            password: "User123!",
+            role: "user",
+          },
+        ];
 
-            for (const acct of demoAccounts) {
-              const exists = await User.findOne({ email: acct.email });
-              if (!exists) {
-                const u = new User({
-                  name: acct.name,
-                  email: acct.email,
-                  password: acct.password,
-                  role: acct.role,
-                });
-                await u.save();
-                console.log(
-                  `Seeded demo account: ${acct.email} (${acct.role})`
-                );
-              }
-            }
-          } catch (err) {
-            console.error("Error seeding demo users:", err);
+        for (const acct of demoAccounts) {
+          const exists = await User.findOne({ email: acct.email });
+          if (!exists) {
+            const u = new User({
+              name: acct.name,
+              email: acct.email,
+              password: acct.password,
+              role: acct.role,
+            });
+            await u.save();
+            console.log(`Seeded demo account: ${acct.email} (${acct.role})`);
           }
-        })();
-      } else {
-        console.log("Demo seeding disabled via DISABLE_DEMO_SEED=true");
+        }
+      } catch (err) {
+        console.error("Error seeding demo users:", err);
       }
-    })
-    .catch((err) => {
-      console.error("Mongo Connection error:", err);
-    });
+    } else {
+      console.log("Demo seeding disabled via DISABLE_DEMO_SEED=true");
+    }
+  } catch (err) {
+    console.error("Startup/Mongo error:", err);
+  }
 }
 
+// Only attempt to start when not in test environment.
+// For tests we usually import the app and manage connection from tests.
+if (process.env.NODE_ENV !== "test") {
+  // Print a trimmed preview of the Mongo URI (safe-ish)
+  try {
+    const preview = mongoUri.length > 80 ? mongoUri.slice(0, 80) + "..." : mongoUri;
+    console.log("Attempting Mongo connect to:", preview);
+  } catch (e) {
+    console.log("Attempting Mongo connect (unable to preview uri)");
+  }
+
+  startServerIfNeeded();
+}
+
+// Export the app so serverless platforms (Vercel) or tests can import it.
 export default app;
