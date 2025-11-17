@@ -26,7 +26,7 @@ This project includes:
 
 ## 📸 Screenshots
 
-> *(Add your screenshots here once deployed — sample placeholders below)*
+> *(Add your screenshots here once deployed — sample placeholders below)*.
 
 - **Login Page**
 - **User Dashboard**
