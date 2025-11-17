@@ -13,27 +13,42 @@ import User from "./models/User.js";
 
 const app = express();
 
-// --- CORS setup (use env or fall back to localhost dev URL)
-// Set FRONTEND_ORIGIN in Vercel/Hostinger to your frontend origin (e.g. https://sweetstop.vercel.app)
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+const FRONTEND_URL = (process.env.FRONTEND_URL || "http://localhost:5173")
+  .replace(/^['"]|['"]$/g, "");
 
 app.use(
   cors({
     origin: (origin, cb) => {
-      // allow backend tools / curl / server-to-server
+      // allow requests from tools and server-to-server (no origin)
       if (!origin) return cb(null, true);
 
-      // allow production frontend
+      // allow explicitly configured frontend URL (production)
       if (origin === FRONTEND_URL) return cb(null, true);
 
-      // allow local dev frontend
-      if (origin === "http://localhost:5173") return cb(null, true);
+      // allow local dev
+      if (origin === "http://localhost:5173" || origin === "http://127.0.0.1:5173")
+        return cb(null, true);
 
+      // allow Vercel preview + vercel.app domains (so frontend deployed on vercel can call backend)
+      try {
+        if (typeof origin === "string" && origin.endsWith(".vercel.app")) {
+          return cb(null, true);
+        }
+      } catch (e) {
+        // fall through to reject
+      }
+
+      // otherwise reject
       return cb(new Error("CORS not allowed"), false);
     },
     credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   })
 );
+
+
+
 app.use(express.json());
 
 // --- API routes
