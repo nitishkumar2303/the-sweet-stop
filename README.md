@@ -1,4 +1,4 @@
-# The Sweet Stop
+<img width="2444" height="1604" alt="image" src="https://github.com/user-attachments/assets/769b2136-5822-4e1b-b080-05b436ec70ba" /># The Sweet Stop
 
 ## Tools Used:
 - GitHub Copilot
@@ -29,10 +29,19 @@ This project includes:
 > *(Add your screenshots here once deployed — sample placeholders below)*
 
 - **Login Page**
+  <img width="2344" height="1598" alt="image" src="https://github.com/user-attachments/assets/0a3ee1d1-fabf-4c73-8cbc-b5e8ab56a858" />
+
+- **Signup Page**
+![Uploading image.png…]()
+
 - **User Dashboard**
+  ![Uploading image.png…]()
+
+
 - **Admin Dashboard**
-- **Purchase Modal**
-- **Admin Category Manager**
+![Uploading image.png…]()
+
+  
 
 ---
 
