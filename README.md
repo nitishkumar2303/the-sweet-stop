@@ -1,4 +1,3 @@
-# The Sweet Stop
 # The Sweet Stop 🍬  
 **Live Demo:** [https://your-frontend.vercel.app  ](https://the-sweet-stop-82ls.vercel.app)
 **Backend API:** [https://your-backend.vercel.app/api](https://the-sweet-stop.vercel.app/)
